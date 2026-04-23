@@ -1,0 +1,6 @@
+{
+  "name": "DALF C1 Exam Simulator",
+  "description": "Generate mock DALF C1 exams, complete them, and get marked by AI with feedback.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

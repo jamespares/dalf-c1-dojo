@@ -1,0 +1,84 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "number"
+        }
+      },
+      "required": ["email", "createdAt"]
+    },
+    "Exam": {
+      "title": "Exam",
+      "description": "A generated Mock DALF C1 Exam",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string",
+          "description": "JSON string of the generated exam"
+        },
+        "createdAt": {
+          "type": "number"
+        }
+      },
+      "required": ["userId", "content", "createdAt"]
+    },
+    "Attempt": {
+      "title": "Attempt",
+      "description": "A user's attempt at an exam with grades",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "examId": {
+          "type": "string"
+        },
+        "answers": {
+          "type": "string",
+          "description": "JSON string of user answers"
+        },
+        "score": {
+          "type": "number"
+        },
+        "feedback": {
+          "type": "string",
+          "description": "Markdown or JSON string of AI feedback"
+        },
+        "createdAt": {
+          "type": "number"
+        }
+      },
+      "required": ["userId", "examId", "answers", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "User profiles"
+    },
+    "/exams/{examId}": {
+      "schema": {
+        "$ref": "#/entities/Exam"
+      },
+      "description": "Generated exams"
+    },
+    "/attempts/{attemptId}": {
+      "schema": {
+        "$ref": "#/entities/Attempt"
+      },
+      "description": "User's attempts on exams"
+    }
+  }
+}

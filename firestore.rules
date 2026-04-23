@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'createdAt']) && 
+             data.keys().size() == 2 &&
+             data.email is string && data.email.size() <= 200 &&
+             data.createdAt == request.time;
+    }
+
+    function isValidExam(data) {
+      return data.keys().hasAll(['userId', 'content', 'createdAt']) &&
+             data.keys().size() == 3 &&
+             data.userId == request.auth.uid &&
+             data.content is string && data.content.size() <= 100000 &&
+             data.createdAt == request.time;
+    }
+
+    function isValidAttempt(data) {
+      return data.keys().hasAll(['userId', 'examId', 'answers', 'createdAt']) &&
+             (data.keys().size() == 4 || data.keys().size() == 6) &&
+             data.userId == request.auth.uid &&
+             data.examId is string && data.examId.size() <= 128 &&
+             data.answers is string && data.answers.size() <= 50000 &&
+             data.createdAt == request.time &&
+             exists(/databases/$(database)/documents/exams/$(data.examId));
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if false; // No list allowed
+      allow create: if isSignedIn() && isValidId(userId) && userId == request.auth.uid && isValidUser(incoming());
+      // No updates for users for now
+      allow update, delete: if false; 
+    }
+
+    match /exams/{examId} {
+      allow get: if isSignedIn() && isValidId(examId);
+      allow list: if isSignedIn() && existing().userId == request.auth.uid; // users can only list their own exams (or public later, but keeping strict for now)
+      allow create: if isSignedIn() && isValidId(examId) && isValidExam(incoming());
+      allow update, delete: if isSignedIn() && isValidId(examId) && existing().userId == request.auth.uid;
+    }
+
+    match /attempts/{attemptId} {
+      allow get: if isSignedIn() && isValidId(attemptId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(attemptId) && isValidAttempt(incoming());
+      allow update: if (
+        isSignedIn() && 
+        isValidId(attemptId) && 
+        existing().userId == request.auth.uid &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['score', 'feedback']) &&
+        incoming().score is number && 
+        incoming().feedback is string && incoming().feedback.size() <= 50000
+      );
+      allow delete: if isSignedIn() && isValidId(attemptId) && existing().userId == request.auth.uid;
+    }
+  }
+}
